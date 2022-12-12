@@ -39,7 +39,7 @@ partial class FastReflection
     ///     <b>NOTE:</b>  This algorithm has a few caveats that should be kept in mind: <br />
     ///     <list type="number">
     ///         <item>
-    ///         <   see langword="null"/> values in members are copied directly.
+    ///         <see langword="null"/> values in members are copied directly.
     ///         </item>
     ///         <item>
     ///             Any <see langword="unmanaged"/> members (meaning, types whose members do not contain any references) are copied directly.

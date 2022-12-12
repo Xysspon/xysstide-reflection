@@ -13,9 +13,6 @@ partial class FastReflection
     private static readonly ConcurrentDictionary<nint, ConcurrentDictionary<string, Action<object?, object?>>> set_field_funcs    = new();
     private static readonly ConcurrentDictionary<nint, ConcurrentDictionary<string, FieldInfo>>                cached_field_infos = new();
 
-    private static readonly ConstructorInfo arg_ex_ctor_string        = typeof(ArgumentException).GetConstructor(new [] { typeof(string) })!;
-    private static readonly ConstructorInfo arg_ex_ctor_string_string = typeof(ArgumentException).GetConstructor(new [] { typeof(string), typeof(string) })!;
-
     private static class FieldGenericDelegates<T>
     {
         // ReSharper disable once StaticMemberInGenericType
@@ -82,13 +79,13 @@ partial class FastReflection
     }
 
     public static void AssignField<T>(ref T instance, string fieldName, object? value) {
-        var func = BuildGenericAssignFieldDelegate<T>(fieldName);
+        var func = buildGenericAssignFieldDelegate<T>(fieldName);
         func(ref instance, value);
     }
 
     public static void AssignStaticField(this Type type, string fieldName, object? value) => AssignField(type, fieldName, null, value);
 
-    private static FieldInfo GetField(Type type, string fieldName) {
+    private static FieldInfo getField(Type type, string fieldName) {
         nint handle = type.TypeHandle.Value;
 
         if (cached_field_infos.TryGetValue(handle, out var fieldDict) && fieldDict.TryGetValue(fieldName, out var fieldInfo)) return fieldInfo;
@@ -105,8 +102,8 @@ partial class FastReflection
 
         if (get_field_funcs.TryGetValue(handle, out var funcDictionary) && funcDictionary.TryGetValue(fieldName, out var func)) return func;
 
-        var    fieldInfo      = GetField(type, fieldName);
-        string name           = $"{typeof(FastReflection).FullName}.BuildRetrieveFieldDelegate<{type.GetSimplifiedGenericTypeName()}>.get_{fieldName}";
+        var    fieldInfo      = getField(type, fieldName);
+        string name           = $"{typeof(FastReflection).FullName}.buildRetrieveFieldDelegate<{type.GetSimplifiedGenericTypeName()}>.get_{fieldName}";
         var    method         = new DynamicMethod(name, typeof(object), new[] { typeof(object) }, type, skipVisibility: true);
         var    il             = method.GetILGenerator();
         var    afterNullCheck = il.DefineLabel();
@@ -158,8 +155,8 @@ partial class FastReflection
 
         if (set_field_funcs.TryGetValue(handle, out var funcDictionary) && funcDictionary.TryGetValue(fieldName, out var func)) return func;
 
-        var    fieldInfo      = GetField(type, fieldName);
-        string name           = $"{typeof(FastReflection).FullName}.BuildAssignFieldDelegate<{type.GetSimplifiedGenericTypeName()}>.set_{fieldName}";
+        var    fieldInfo      = getField(type, fieldName);
+        string name           = $"{typeof(FastReflection).FullName}.buildAssignFieldDelegate<{type.GetSimplifiedGenericTypeName()}>.set_{fieldName}";
         var    method         = new DynamicMethod(name, null, new[] { typeof(object), typeof(object) }, type, skipVisibility: true);
         var    il             = method.GetILGenerator();
         var    afterNullCheck = il.DefineLabel();
@@ -222,8 +219,8 @@ partial class FastReflection
 
         if (FieldGenericDelegates<T>.GetFieldFuncs.TryGetValue(fieldName, out FieldGenericDelegates<T>.RetrieveDelegate? func)) return func;
 
-        var    fieldInfo = GetField(type, fieldName);
-        string name      = $"{typeof(FastReflection).FullName}.BuildGenericRetrieveFieldDelegate<{type.GetSimplifiedGenericTypeName()}>.get_{fieldName}";
+        var    fieldInfo = getField(type, fieldName);
+        string name      = $"{typeof(FastReflection).FullName}.buildGenericRetrieveFieldDelegate<{type.GetSimplifiedGenericTypeName()}>.get_{fieldName}";
         var    method    = new DynamicMethod(name, typeof(object), new[] { type.MakeByRefType() }, type, skipVisibility: true);
         var    il        = method.GetILGenerator();
 
@@ -244,13 +241,13 @@ partial class FastReflection
         return FieldGenericDelegates<T>.GetFieldFuncs[fieldName] = /*func =*/ method.CreateDelegate<FieldGenericDelegates<T>.RetrieveDelegate>();
     }
 
-    private static FieldGenericDelegates<T>.AssignDelegate BuildGenericAssignFieldDelegate<T>(string fieldName) {
+    private static FieldGenericDelegates<T>.AssignDelegate buildGenericAssignFieldDelegate<T>(string fieldName) {
         var type = typeof(T);
 
         if (FieldGenericDelegates<T>.SetFieldFuncs.TryGetValue(fieldName, out FieldGenericDelegates<T>.AssignDelegate? func)) return func;
 
-        var    fieldInfo = GetField(type, fieldName);
-        string name      = $"{typeof(FastReflection).FullName}.BuildGenericAssignFieldDelegate<{type.GetSimplifiedGenericTypeName()}>.set_{fieldName}";
+        var    fieldInfo = getField(type, fieldName);
+        string name      = $"{typeof(FastReflection).FullName}.buildGenericAssignFieldDelegate<{type.GetSimplifiedGenericTypeName()}>.set_{fieldName}";
         var    method    = new DynamicMethod(name, null, new[] { type.MakeByRefType(), typeof(object) }, type, skipVisibility: true);
         var    il        = method.GetILGenerator();
 
